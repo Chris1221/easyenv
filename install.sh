@@ -47,12 +47,10 @@ detect_target() {
 
   case "$os" in
     Linux)
-      libc="gnu"
-      if [ -f /etc/alpine-release ]; then
-        libc="musl"
-      elif command -v ldd >/dev/null 2>&1 && ldd --version 2>&1 | grep -qi musl; then
-        libc="musl"
-      fi
+      # Default to the statically-linked musl build: it has no glibc version
+      # dependency, so it runs on any Linux regardless of how old the host's
+      # glibc is. Set EASYENV_TARGET to override (e.g. ...-unknown-linux-gnu).
+      libc="musl"
       echo "${arch}-unknown-linux-${libc}"
       ;;
     Darwin)
