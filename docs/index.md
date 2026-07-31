@@ -14,6 +14,12 @@ $ echo $DATABASE_URL
 
 No `.envrc`, no `direnv allow`, no per-directory trust prompts, no leftover variables from the last project you were in. You install it once and forget it's there.
 
+## It stays fast, even deep in a directory tree
+
+![Cold-load latency vs. directory nesting depth: easyenv stays under 6ms out to 128 levels, direnv grows to ~78ms, autoenv grows to over a second](assets/benchmark-nesting.png)
+
+That's cold-load latency — the time from `cd` to variables being set — as nesting gets deeper. easyenv stays at a few milliseconds out to 128 nested `.env` files. direnv grows noticeably. autoenv, which has no caching and shells out to external commands per ancestor directory, passes **a full second** at 128 levels. Full methodology and how to reproduce it: [Benchmarks](reference/benchmarks.md).
+
 ## Why not direnv or autoenv?
 
 - **direnv** doesn't support `.env` files out of the box — it wants a `.envrc` that explicitly calls `dotenv`, plus a trust/allow step per directory.
