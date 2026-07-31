@@ -9,6 +9,13 @@ on:
       - "requirements-docs.txt"
       - ".github/workflows/docs.yml"
   workflow_dispatch: {}
+  # The benchmark workflow commits its regenerated CSV/plot using the
+  # built-in GITHUB_TOKEN, which by GitHub's own design does not trigger
+  # other workflows via `push` -- so without this, the live docs site would
+  # never pick up a fresh benchmark chart on its own.
+  workflow_run:
+    workflows: ["benchmark"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -22,6 +29,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
