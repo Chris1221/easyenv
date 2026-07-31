@@ -1,26 +1,30 @@
-name: release
-
-permissions:
-  contents: read
+name: release-please
 
 on:
   push:
-    tags:
-      - "v[0-9]+.*"
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  create-release:
+  release-please:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/create-gh-release-action@v1
+      - uses: googleapis/release-please-action@v4
+        id: release
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   upload-assets:
-    needs: create-release
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
     strategy:
       fail-fast: false
       matrix:
@@ -44,10 +48,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: easyenv
           target: ${{ matrix.target }}
-          archive: easyenv-$tag-$target
+          archive: easyenv-${{ needs.release-please.outputs.tag_name }}-$target
           checksum: sha256
+          tag: ${{ needs.release-please.outputs.tag_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
