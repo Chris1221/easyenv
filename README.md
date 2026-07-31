@@ -22,12 +22,9 @@ No `.envrc`, no per-directory trust prompts, no leftover variables from the last
 ## Quickstart
 
 ```console
-$ curl -LO https://github.com/Chris1221/easyenv/releases/latest/download/easyenv-<tag>-x86_64-unknown-linux-gnu.tar.gz
-$ tar xzf easyenv-*.tar.gz && install -m 755 easyenv ~/.local/bin/easyenv
-# or: cargo install --path . --locked, from a clone
-
-$ easyenv init bash                 # or: zsh
-# add the printed line to your ~/.bashrc (or ~/.zshrc), then restart your shell
+$ curl -fsSL https://raw.githubusercontent.com/Chris1221/easyenv/main/install.sh | bash
+# detects your platform, downloads + checksum-verifies the release binary,
+# installs to ~/.local/bin (no sudo), and asks before touching your rc file
 
 $ cd ~/some/project
 $ echo 'API_KEY=demo-123' > .env
@@ -36,7 +33,7 @@ $ echo $API_KEY
 demo-123
 ```
 
-Prebuilt archives for Linux (x86_64/aarch64, gnu/musl), macOS (Intel/Apple Silicon), and Windows are on the [releases page](https://github.com/Chris1221/easyenv/releases). See the [installation guide](http://chrisbcole.me/easyenv/getting-started/installation/) and [quickstart tutorial](http://chrisbcole.me/easyenv/getting-started/quickstart/) for the full walkthrough.
+`install.sh` is a plain, [readable shell script](install.sh) — review it before piping it to `bash` if you'd like. Prebuilt archives for Linux (x86_64/aarch64, gnu/musl), macOS (Intel/Apple Silicon), and Windows are also on the [releases page](https://github.com/Chris1221/easyenv/releases) if you'd rather install manually, and `cargo install --path .` works from a clone. See the [installation guide](http://chrisbcole.me/easyenv/getting-started/installation/) and [quickstart tutorial](http://chrisbcole.me/easyenv/getting-started/quickstart/) for the full walkthrough.
 
 ## How it compares
 

@@ -14,6 +14,12 @@ $ echo $DATABASE_URL
 
 No `.envrc`, no `direnv allow`, no per-directory trust prompts, no leftover variables from the last project you were in. You install it once and forget it's there.
 
+```console
+$ curl -fsSL https://raw.githubusercontent.com/Chris1221/easyenv/main/install.sh | bash
+```
+
+Detects your platform, downloads and checksum-verifies the right release binary, installs it to `~/.local/bin` (no `sudo`), and asks before touching your shell's rc file. Full details: [Installation](getting-started/installation.md).
+
 ## It stays fast, even deep in a directory tree
 
 ![Cold-load latency vs. directory nesting depth: easyenv stays under 6ms out to 128 levels, direnv grows to ~78ms, autoenv grows to over a second](assets/benchmark-nesting.png)

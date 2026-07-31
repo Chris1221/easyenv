@@ -2,7 +2,24 @@
 
 ## 1. Get the binary
 
-=== "Download a release (recommended)"
+=== "Quick install (recommended)"
+
+    ```console
+    $ curl -fsSL https://raw.githubusercontent.com/Chris1221/easyenv/main/install.sh | bash
+    ```
+
+    This script:
+
+    1. Detects your OS and CPU architecture
+    2. Downloads the matching archive from the [latest release](https://github.com/Chris1221/easyenv/releases/latest) and verifies its sha256 checksum
+    3. Installs the binary to `~/.local/bin` (no `sudo`)
+    4. Detects whether you run bash or zsh, shows you the exact line(s) it wants to add to your rc file, and **asks for confirmation before touching anything** — it never edits a file without you explicitly saying yes, and it's a no-op if you've already run it before
+
+    Read the script before piping it to `bash` if you'd like — it's a plain, commented shell script: [`install.sh`](https://github.com/Chris1221/easyenv/blob/main/install.sh).
+
+    Override where it installs or which release/target it fetches with `EASYENV_INSTALL_DIR`, `EASYENV_VERSION`, or `EASYENV_TARGET`.
+
+=== "Download a release manually"
 
     Grab the archive for your platform from the [latest release](https://github.com/Chris1221/easyenv/releases/latest), then extract and install it:
 
@@ -39,11 +56,13 @@
     Useful if you're on a platform without a prebuilt archive, or want to build from a specific commit.
 
 !!! info "Windows"
-    A Windows binary is published, but the shell integration below (`easyenv init`/`hook`) currently only implements bash and zsh — PowerShell support is on the roadmap. The binary itself works standalone (`easyenv status`, etc.) on Windows today.
+    A Windows binary is published, but the shell integration below (`easyenv init`/`hook`) currently only implements bash and zsh — PowerShell support is on the roadmap. The binary itself works standalone (`easyenv status`, etc.) on Windows today. `install.sh` is a bash script and won't run natively on Windows outside WSL.
 
 ## 2. Wire up your shell
 
-Run `easyenv init <shell>` to see the one-line snippet for your shell:
+If you used the quick install script above and said yes to the prompt, you're already done — skip to the [Quickstart](quickstart.md).
+
+Otherwise, run `easyenv init <shell>` to see the one-line snippet for your shell:
 
 === "Bash"
 
