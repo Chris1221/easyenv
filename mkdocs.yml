@@ -1,6 +1,6 @@
 site_name: easyenv
 site_description: Automatic per-directory .env loading for your shell
-site_url: https://chris1221.github.io/easyenv/
+site_url: http://chrisbcole.me/easyenv/
 repo_url: https://github.com/Chris1221/easyenv
 repo_name: Chris1221/easyenv
 edit_uri: edit/main/docs/
