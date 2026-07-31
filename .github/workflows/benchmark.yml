@@ -1,0 +1,56 @@
+name: benchmark
+
+on:
+  push:
+    branches: [main]
+    # Avoid retriggering on the bot's own commit that only updates the
+    # generated data/plot below.
+    paths-ignore:
+      - "docs/assets/benchmark-nesting.png"
+      - "benches/results.csv"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Shared runners are noisy; treat these numbers as indicative of relative
+# scaling between tools rather than precise absolute latencies (see
+# docs/reference/benchmarks.md). Runs on ubuntu-latest only: the benchmark
+# script uses `date +%s%N`, which needs GNU date (not available on macOS's
+# default BSD date).
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release
+
+      - name: Install direnv
+        run: sudo apt-get update && sudo apt-get install -y direnv
+
+      - name: Clone autoenv
+        run: git clone --depth 1 https://github.com/hyperupcall/autoenv.git /tmp/autoenv
+
+      - name: Run nesting benchmark
+        run: AUTOENV_DIR=/tmp/autoenv ./benches/nesting_benchmark.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install -r requirements-benches.txt
+      - run: python3 benches/plot_nesting_benchmark.py
+
+      - name: Commit regenerated benchmark data and plot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add benches/results.csv docs/assets/benchmark-nesting.png
+          if git diff --cached --quiet; then
+            echo "no change in benchmark results"
+          else
+            git commit -m "chore(bench): regenerate nesting benchmark data and plot"
+            git push
+          fi

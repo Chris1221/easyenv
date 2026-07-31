@@ -48,6 +48,14 @@ See the [installation guide](http://chrisbcole.me/easyenv/getting-started/instal
 
 The short version: direnv is powerful and general (it can run arbitrary shell, not just `.env` files) but that generality is exactly why it needs an explicit `.envrc` and a trust step per directory — friction easyenv is designed to have none of. autoenv gets the "load on `cd` in" half right but doesn't unload without extra setup, so variables from one project bleed into the next. easyenv only does the one job — load/unload `.env` on `cd`, with nested overrides — and does it with no config and no prompts.
 
+## Performance
+
+Cold-load latency (time from `cd` to variables being set) as directory nesting gets deeper:
+
+![Cold-load latency vs. directory nesting depth: easyenv stays under 6ms out to 128 levels, direnv grows to ~78ms, autoenv grows to over a second](docs/assets/benchmark-nesting.png)
+
+easyenv stays flat at a few milliseconds out to 128 levels of nested `.env` files; direnv grows more noticeably; autoenv — which shells out to external commands per ancestor directory and has no caching — passes **a full second** at 128 levels. Methodology, caveats, and how to reproduce it: [Benchmarks](http://chrisbcole.me/easyenv/reference/benchmarks/).
+
 ## How it works
 
 There's no daemon. A shell hook (`eval "$(easyenv hook bash)"` in your rc file) runs on every prompt and calls the `easyenv` binary, which discovers every `.env` from your current directory up to the filesystem root, merges them with child-overrides-parent precedence, diffs the result against what it previously set, and prints the minimal `export`/`unset` statements for your shell to `eval`. A cheap signature (directory + each `.env`'s mtime/size) lets it skip all of that instantly when nothing has changed, which is what keeps "run on every prompt" from being noticeable.
