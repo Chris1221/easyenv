@@ -22,7 +22,10 @@ No `.envrc`, no per-directory trust prompts, no leftover variables from the last
 ## Quickstart
 
 ```console
-$ cargo install --path . --locked   # from a clone, until releases exist
+$ curl -LO https://github.com/Chris1221/easyenv/releases/latest/download/easyenv-<tag>-x86_64-unknown-linux-gnu.tar.gz
+$ tar xzf easyenv-*.tar.gz && install -m 755 easyenv ~/.local/bin/easyenv
+# or: cargo install --path . --locked, from a clone
+
 $ easyenv init bash                 # or: zsh
 # add the printed line to your ~/.bashrc (or ~/.zshrc), then restart your shell
 
@@ -33,7 +36,7 @@ $ echo $API_KEY
 demo-123
 ```
 
-See the [installation guide](http://chrisbcole.me/easyenv/getting-started/installation/) and [quickstart tutorial](http://chrisbcole.me/easyenv/getting-started/quickstart/) for the full walkthrough.
+Prebuilt archives for Linux (x86_64/aarch64, gnu/musl), macOS (Intel/Apple Silicon), and Windows are on the [releases page](https://github.com/Chris1221/easyenv/releases). See the [installation guide](http://chrisbcole.me/easyenv/getting-started/installation/) and [quickstart tutorial](http://chrisbcole.me/easyenv/getting-started/quickstart/) for the full walkthrough.
 
 ## How it compares
 
@@ -64,7 +67,7 @@ Full design write-up: [How it works](http://chrisbcole.me/easyenv/reference/how-
 
 ## Status
 
-Early. Bash and zsh are supported; fish and PowerShell are on the roadmap, along with prebuilt release binaries and package manager distribution (Homebrew, Scoop/winget). See [`PLAN.md`](PLAN.md) for the full roadmap.
+Early. Bash and zsh are supported; fish and PowerShell are on the roadmap. Releases are cross-compiled and published automatically (see [Release process](#release-process) below); package manager distribution (Homebrew, Scoop/winget) is not set up yet. See [`PLAN.md`](PLAN.md) for the full roadmap.
 
 ## Development
 
@@ -91,4 +94,13 @@ The site at [chrisbcole.me/easyenv](http://chrisbcole.me/easyenv/) is built from
 ```console
 $ pip install -r requirements-docs.txt
 $ mkdocs serve
+```
+
+### Release process
+
+Pushing a tag matching `v[0-9]+.*` (e.g. `v0.1.0`) triggers `.github/workflows/release.yml`, which cross-compiles `easyenv` for Linux (x86_64/aarch64, gnu/musl), macOS (Intel/Apple Silicon), and Windows (x86_64), and publishes each as a checksummed archive on a new GitHub Release ([`taiki-e/create-gh-release-action`](https://github.com/taiki-e/create-gh-release-action) + [`taiki-e/upload-rust-binary-action`](https://github.com/taiki-e/upload-rust-binary-action)):
+
+```console
+$ git tag v0.1.0
+$ git push origin v0.1.0
 ```

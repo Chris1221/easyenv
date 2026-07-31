@@ -1,31 +1,47 @@
 # Installation
 
-!!! note "Prebuilt binaries are coming"
-    easyenv is early in development. There's no `curl | sh` installer or package manager release yet — for now, build it from source with Cargo. This page will be replaced with one-line install instructions once releases exist.
+## 1. Get the binary
 
-## 1. Install Rust (if you don't have it)
+=== "Download a release (recommended)"
 
-```console
-$ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
+    Grab the archive for your platform from the [latest release](https://github.com/Chris1221/easyenv/releases/latest), then extract and install it:
 
-## 2. Build easyenv
+    ```console
+    $ curl -LO https://github.com/Chris1221/easyenv/releases/latest/download/easyenv-<tag>-x86_64-unknown-linux-gnu.tar.gz
+    $ tar xzf easyenv-<tag>-x86_64-unknown-linux-gnu.tar.gz
+    $ install -m 755 easyenv ~/.local/bin/easyenv
+    ```
 
-```console
-$ git clone https://github.com/Chris1221/easyenv.git
-$ cd easyenv
-$ cargo build --release
-```
+    Replace `x86_64-unknown-linux-gnu` with your platform:
 
-The binary lands at `target/release/easyenv`. Put it on your `PATH`, e.g.:
+    | Platform | Target |
+    |---|---|
+    | Linux x86_64 | `x86_64-unknown-linux-gnu` (or `-musl` for a fully static binary) |
+    | Linux ARM64 | `aarch64-unknown-linux-gnu` (or `-musl`) |
+    | macOS Intel | `x86_64-apple-darwin` |
+    | macOS Apple Silicon | `aarch64-apple-darwin` |
+    | Windows x86_64 | `x86_64-pc-windows-msvc` (`.zip`) |
 
-```console
-$ install -m 755 target/release/easyenv ~/.local/bin/easyenv
-```
+    Each archive ships with a `.sha256` checksum alongside it on the release page, worth verifying before you install anything downloaded from the internet.
 
-Make sure `~/.local/bin` is on your `PATH` (check with `echo $PATH`).
+    Make sure the install directory (e.g. `~/.local/bin`) is on your `PATH`.
 
-## 3. Wire up your shell
+=== "Build from source with Cargo"
+
+    ```console
+    $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # if you don't have Rust
+    $ git clone https://github.com/Chris1221/easyenv.git
+    $ cd easyenv
+    $ cargo build --release
+    $ install -m 755 target/release/easyenv ~/.local/bin/easyenv
+    ```
+
+    Useful if you're on a platform without a prebuilt archive, or want to build from a specific commit.
+
+!!! info "Windows"
+    A Windows binary is published, but the shell integration below (`easyenv init`/`hook`) currently only implements bash and zsh — PowerShell support is on the roadmap. The binary itself works standalone (`easyenv status`, etc.) on Windows today.
+
+## 2. Wire up your shell
 
 Run `easyenv init <shell>` to see the one-line snippet for your shell:
 
