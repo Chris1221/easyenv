@@ -1,0 +1,58 @@
+site_name: easyenv
+site_description: Automatic per-directory .env loading for your shell
+site_url: https://chris1221.github.io/easyenv/
+repo_url: https://github.com/Chris1221/easyenv
+repo_name: Chris1221/easyenv
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - Installation: getting-started/installation.md
+      - Quickstart: getting-started/quickstart.md
+  - Tutorials:
+      - Nested directories: tutorials/nested-directories.md
+      - Editing .env live: tutorials/editing-env-live.md
+  - Reference:
+      - CLI: reference/cli.md
+      - How it works: reference/how-it-works.md
+      - FAQ: reference/faq.md
