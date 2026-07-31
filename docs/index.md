@@ -20,12 +20,18 @@ No `.envrc`, no `direnv allow`, no per-directory trust prompts, no leftover vari
 
 That's cold-load latency — the time from `cd` to variables being set — as nesting gets deeper. easyenv stays at a few milliseconds out to 128 nested `.env` files. direnv grows noticeably. autoenv, which has no caching and shells out to external commands per ancestor directory, passes **a full second** at 128 levels. Full methodology and how to reproduce it: [Benchmarks](reference/benchmarks.md).
 
-## Why not direnv or autoenv?
+## How it compares
 
-- **direnv** doesn't support `.env` files out of the box — it wants a `.envrc` that explicitly calls `dotenv`, plus a trust/allow step per directory.
-- **autoenv** loads variables on `cd` in, but doesn't unload them on `cd` out without extra configuration, so variables leak between projects.
+| | **easyenv** | [direnv](https://direnv.net/) | [autoenv](https://github.com/hyperupcall/autoenv) | sourcing `.env` by hand |
+|---|---|---|---|---|
+| Loads `.env` automatically, no boilerplate | ✅ | ❌ — needs an `.envrc` per directory that explicitly calls `dotenv` | ✅ | ❌ |
+| Unloads automatically on `cd` out | ✅ | ✅ | ❌ — variables leak into the next directory unless you configure a `.env.leave`/hook yourself | ❌ |
+| No per-directory trust/allow step | ✅ | ❌ — requires `direnv allow` the first time (and again on every edit) | ✅ | n/a |
+| Parent directories merge automatically, child overrides parent | ✅ | only via an explicit `source_up` call in every child `.envrc` | ❌ | ❌ |
+| Zero configuration files | ✅ | ❌ (`.envrc` per directory) | ✅ | n/a |
+| Runtime | single Rust binary | Go binary | Bash script | — |
 
-easyenv does both halves of the job automatically, with zero configuration and zero prompts.
+The short version: direnv is powerful and general (it can run arbitrary shell, not just `.env` files) but that generality is exactly why it needs an explicit `.envrc` and a trust step per directory — friction easyenv is designed to have none of. autoenv gets the "load on `cd` in" half right but doesn't unload without extra setup, so variables from one project bleed into the next. easyenv only does the one job — load/unload `.env` on `cd`, with nested overrides — and does it with no config and no prompts.
 
 ## How it merges nested directories
 
