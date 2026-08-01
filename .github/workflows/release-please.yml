@@ -56,5 +56,5 @@ jobs:
           target: ${{ matrix.target }}
           archive: easyenv-$tag-$target
           checksum: sha256
-          tag: ${{ needs.release-please.outputs.tag_name }}
+          ref: refs/tags/${{ needs.release-please.outputs.tag_name }}
           token: ${{ secrets.GITHUB_TOKEN }}
