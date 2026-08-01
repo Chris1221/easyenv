@@ -21,9 +21,9 @@ Neither hook is gated on "did the directory actually change" — a `.env` file c
 
 This is the subcommand the hook calls and `eval`s. Each run:
 
-1. **Discovers** every `.env` from the current directory up to the filesystem root.
-2. Computes a **fast-path signature** — a hash of the current directory plus each candidate `.env` file's modification time and size (not its contents). If this matches the signature from the last invocation, *nothing else happens* — no parsing, no diffing, no output. This is the dominant case (sitting at a prompt, nothing changed), and it's what keeps the "run unconditionally on every prompt" design cheap.
-3. If the signature differs, it **parses** each `.env` file (via the battle-tested `dotenvy` parser) and **merges** them root-to-leaf, so closer directories override farther ones on conflicting keys while non-conflicting keys from every layer survive.
+1. **Discovers** every `.env` from the current directory up to the filesystem root, skipping directories that are never trusted (`/tmp`, mounted media, vendored dependency folders) or excluded by your own config — see [Security](security.md).
+2. Computes a **fast-path signature** — a hash of the current directory plus each candidate `.env` file's *and* your `config.toml`'s modification time and size (not their contents). If this matches the signature from the last invocation, *nothing else happens* — no parsing, no diffing, no output. This is the dominant case (sitting at a prompt, nothing changed), and it's what keeps the "run unconditionally on every prompt" design cheap. Because this is mtime+size, not content, an edit that lands within the same mtime tick as a prior edit could in principle go undetected until the next real change — it fails *safe* (stale, never wrong), but filesystems with coarse (e.g. one-second) mtime resolution widen that window slightly.
+3. If the signature differs, it **parses** each `.env` file (via the `dotenvy` parser) and **merges** them root-to-leaf, so closer directories override farther ones on conflicting keys while non-conflicting keys from every layer survive, then filters out any key that isn't a valid shell identifier or is denied by the security policy.
 4. It **diffs** the merged result against what easyenv previously set (see below) and prints the minimal `export`/`unset` statements needed — nothing if there's no change to apply.
 
 ## Remembering what to undo
