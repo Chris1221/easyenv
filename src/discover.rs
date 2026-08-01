@@ -120,14 +120,21 @@ mod tests {
         assert!(files.is_empty());
     }
 
+    #[cfg(unix)]
     #[test]
     fn compiled_in_defaults_skip_tmp_itself() {
         // Sanity check the real, non-test-overridden defaults against the
-        // exact scenario the other tests in this file work around: a
-        // fixture under /tmp is not collected when using real defaults.
-        let tmp = tempfile::tempdir().unwrap();
-        fs::write(tmp.path().join(".env"), "FOO=1\n").unwrap();
-        let files = discover_env_files(tmp.path(), &Config::defaults());
+        // exact scenario the other tests in this file work around. Uses
+        // an explicit /tmp path rather than `tempfile::tempdir()`, since
+        // on macOS that resolves to $TMPDIR (typically under
+        // /var/folders/...), not /tmp -- which is exactly why the other
+        // tests in this file need `Config::unrestricted()` in the first
+        // place on Linux, where tempfile's default *does* land in /tmp.
+        let dir = Path::new("/tmp").join(format!("easyenv-discover-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join(".env"), "FOO=1\n").unwrap();
+        let files = discover_env_files(&dir, &Config::defaults());
+        fs::remove_dir_all(&dir).ok();
         assert!(files.is_empty());
     }
 }
