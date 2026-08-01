@@ -3,6 +3,16 @@
 //! stdin, and assert on what the shell echoed back. These exercise the
 //! full shell-hook -> `easyenv export` -> `eval` loop, not just the diff
 //! engine in isolation.
+//!
+//! Fixtures use `scratch_dir()` (a tempdir under `<repo>/test-scratch`)
+//! rather than the default `TempDir::new()` (which lands under `/tmp`):
+//! the compiled-in security defaults deliberately skip `/tmp`
+//! (world-writable, shared machines), so a fixture placed there would be
+//! silently ignored by the real binary under test -- the same thing a
+//! real user hitting this default would see, just not what we want for
+//! testing unrelated behavior. `CARGO_TARGET_TMPDIR` (`<repo>/target/tmp`)
+//! doesn't work either, for the same reason: `target` is itself one of
+//! the compiled-in vendored-directory names.
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -16,6 +26,16 @@ fn easyenv_bin_dir() -> PathBuf {
         .to_path_buf()
 }
 
+/// A fresh tempdir outside both `/tmp` and any vendored-component name --
+/// see the module-level doc comment for why plain `TempDir::new()` or
+/// `CARGO_TARGET_TMPDIR` don't work now that the security defaults skip
+/// both.
+fn scratch_dir() -> TempDir {
+    let base = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("test-scratch");
+    std::fs::create_dir_all(&base).unwrap();
+    TempDir::new_in(&base).unwrap()
+}
+
 fn write_env(path: &Path, contents: &str) {
     std::fs::write(path, contents).unwrap();
 }
@@ -25,7 +45,7 @@ fn write_env(path: &Path, contents: &str) {
 /// shell wrote to stdout. `shell` is `"bash"` or `"zsh"`.
 fn run_in_shell(shell: &str, start_dir: &Path, script: &str) -> String {
     let bin_dir = easyenv_bin_dir();
-    let rc_dir = TempDir::new().unwrap();
+    let rc_dir = scratch_dir();
 
     let mut cmd = match shell {
         "bash" => {
@@ -100,7 +120,7 @@ macro_rules! for_each_shell {
 }
 
 fn scenario_override_inherit_restore_unset(shell: &str) {
-    let tmp = TempDir::new().unwrap();
+    let tmp = scratch_dir();
     let parent = tmp.path().join("parent");
     let child = parent.join("child");
     let sibling = tmp.path().join("sibling");
@@ -146,7 +166,7 @@ for_each_shell!(
 );
 
 fn scenario_shell_starts_already_inside_env_dir(shell: &str) {
-    let tmp = TempDir::new().unwrap();
+    let tmp = scratch_dir();
     let dir = tmp.path().join("already_here");
     std::fs::create_dir_all(&dir).unwrap();
     write_env(&dir.join(".env"), "FOO=loaded_on_startup\n");
@@ -167,7 +187,7 @@ for_each_shell!(
 );
 
 fn scenario_editing_env_live_is_picked_up_without_cd(shell: &str) {
-    let tmp = TempDir::new().unwrap();
+    let tmp = scratch_dir();
     let dir = tmp.path().join("proj");
     std::fs::create_dir_all(&dir).unwrap();
     write_env(&dir.join(".env"), "FOO=before\n");
@@ -202,7 +222,7 @@ for_each_shell!(
 );
 
 fn scenario_malformed_env_does_not_crash_shell(shell: &str) {
-    let tmp = TempDir::new().unwrap();
+    let tmp = scratch_dir();
     let dir = tmp.path().join("malformed");
     std::fs::create_dir_all(&dir).unwrap();
     write_env(
@@ -226,7 +246,7 @@ for_each_shell!(
 
 #[cfg(unix)]
 fn scenario_symlinked_directory_resolves_real_target(shell: &str) {
-    let tmp = TempDir::new().unwrap();
+    let tmp = scratch_dir();
     let real = tmp.path().join("real");
     std::fs::create_dir_all(&real).unwrap();
     write_env(&real.join(".env"), "FOO=via_symlink\n");
@@ -249,7 +269,7 @@ for_each_shell!(
 );
 
 fn scenario_exit_status_of_failing_command_is_preserved(shell: &str) {
-    let tmp = TempDir::new().unwrap();
+    let tmp = scratch_dir();
     let dir = tmp.path().join("proj");
     std::fs::create_dir_all(&dir).unwrap();
     write_env(&dir.join(".env"), "FOO=1\n");
@@ -291,7 +311,7 @@ fn run_in_shell_with_hijacked_path(
     shim_dir: &Path,
 ) -> String {
     let real_bin = easyenv_bin_dir().join("easyenv");
-    let rc_dir = TempDir::new().unwrap();
+    let rc_dir = scratch_dir();
 
     let mut cmd = match shell {
         "bash" => {
@@ -355,7 +375,7 @@ fn run_in_shell_with_hijacked_path(
 /// PATH -- it must keep calling the real binary directly.
 #[cfg(unix)]
 fn scenario_hook_survives_path_hijack(shell: &str) {
-    let tmp = TempDir::new().unwrap();
+    let tmp = scratch_dir();
     let dir = tmp.path().join("proj");
     std::fs::create_dir_all(&dir).unwrap();
     write_env(&dir.join(".env"), "FOO=real_value\n");
@@ -382,4 +402,146 @@ fn scenario_hook_survives_path_hijack(shell: &str) {
 for_each_shell!(
     hook_survives_path_hijack,
     scenario_hook_survives_path_hijack
+);
+
+// --- Denylist: a hostile .env must not achieve code execution --------
+//
+// These are the actual exploit scenarios from security.md/blocklist.md,
+// exercised against the real hook -> eval loop, not just the config
+// engine's unit tests. Each writes a `.env` that would, if applied,
+// either run an arbitrary command (proven by a marker file appearing) or
+// redirect a lookup path (proven by echoing the variable back), and
+// asserts that a legitimate sibling key still loads normally alongside
+// the denied one.
+
+fn scenario_prompt_command_injection_is_blocked(shell: &str) {
+    let tmp = scratch_dir();
+    let dir = tmp.path().join("proj");
+    std::fs::create_dir_all(&dir).unwrap();
+    let marker = tmp.path().join("prompt_command_pwned_marker");
+    write_env(
+        &dir.join(".env"),
+        &format!(
+            "PROMPT_COMMAND=\"touch {}\"\nGOOD_VAR=ok\n",
+            marker.display()
+        ),
+    );
+
+    let script = "echo \"M1 GOOD_VAR=$GOOD_VAR\"\nexit\n";
+    let out = run_in_shell(shell, &dir, script);
+
+    assert!(
+        out.contains("M1 GOOD_VAR=ok"),
+        "a legitimate sibling key must still load; got:\n{out}"
+    );
+    assert!(
+        !marker.exists(),
+        "PROMPT_COMMAND from a .env must never execute, even though the \
+         hook's own eval runs in the live interactive shell"
+    );
+}
+for_each_shell!(
+    prompt_command_injection_is_blocked,
+    scenario_prompt_command_injection_is_blocked
+);
+
+fn scenario_ps1_injection_is_blocked(shell: &str) {
+    let tmp = scratch_dir();
+    let dir = tmp.path().join("proj");
+    std::fs::create_dir_all(&dir).unwrap();
+    let marker = tmp.path().join("ps1_pwned_marker");
+    write_env(
+        &dir.join(".env"),
+        &format!("PS1=\"$(touch {})\"\nGOOD_VAR=ok\n", marker.display()),
+    );
+
+    let script = "echo \"M1 GOOD_VAR=$GOOD_VAR\"\nexit\n";
+    let out = run_in_shell(shell, &dir, script);
+
+    assert!(
+        out.contains("M1 GOOD_VAR=ok"),
+        "a legitimate sibling key must still load; got:\n{out}"
+    );
+    assert!(
+        !marker.exists(),
+        "PS1 from a .env must never execute via command substitution \
+         (bash performs it in prompt strings by default)"
+    );
+}
+for_each_shell!(ps1_injection_is_blocked, scenario_ps1_injection_is_blocked);
+
+fn scenario_path_from_env_is_denied(shell: &str) {
+    let tmp = scratch_dir();
+    let dir = tmp.path().join("proj");
+    std::fs::create_dir_all(&dir).unwrap();
+    write_env(&dir.join(".env"), "PATH=/nonexistent/evil\nGOOD_VAR=ok\n");
+
+    let script = "echo \"M1 GOOD_VAR=$GOOD_VAR \
+                   PATH_CHANGED=$([ \"$PATH\" = /nonexistent/evil ] && echo yes || echo no)\"\n\
+                   exit\n";
+    let out = run_in_shell(shell, &dir, script);
+
+    assert!(
+        out.contains("M1 GOOD_VAR=ok"),
+        "a legitimate sibling key must still load; got:\n{out}"
+    );
+    assert!(
+        out.contains("PATH_CHANGED=no"),
+        "PATH must never be set from a .env; got:\n{out}"
+    );
+}
+for_each_shell!(path_from_env_is_denied, scenario_path_from_env_is_denied);
+
+fn scenario_bash_env_is_denied(shell: &str) {
+    let tmp = scratch_dir();
+    let dir = tmp.path().join("proj");
+    std::fs::create_dir_all(&dir).unwrap();
+    let evil_script = tmp.path().join("evil.sh");
+    let marker = tmp.path().join("bash_env_pwned_marker");
+    write_env(&evil_script, &format!("touch {}\n", marker.display()));
+    write_env(
+        &dir.join(".env"),
+        &format!("BASH_ENV={}\nGOOD_VAR=ok\n", evil_script.display()),
+    );
+
+    let script = "echo \"M1 GOOD_VAR=$GOOD_VAR BASH_ENV=[$BASH_ENV]\"\n\
+                   bash -c 'true'\n\
+                   exit\n";
+    let out = run_in_shell(shell, &dir, script);
+
+    assert!(
+        out.contains("M1 GOOD_VAR=ok BASH_ENV=[]"),
+        "BASH_ENV must never be set from a .env; got:\n{out}"
+    );
+    assert!(
+        !marker.exists(),
+        "a nested non-interactive bash must not source a BASH_ENV script \
+         that was never exported in the first place"
+    );
+}
+for_each_shell!(bash_env_is_denied, scenario_bash_env_is_denied);
+
+fn scenario_shellopts_denial_does_not_break_legitimate_loading(shell: &str) {
+    let tmp = scratch_dir();
+    let dir = tmp.path().join("proj");
+    std::fs::create_dir_all(&dir).unwrap();
+    // SHELLOPTS is readonly in a running bash -- exporting it would
+    // itself produce a shell error inside the hook's eval on every
+    // prompt if it weren't denied. Denying it fixes that cosmetic bug as
+    // well as the security one; the main thing to prove here is that a
+    // legitimate sibling key still loads fine regardless.
+    write_env(&dir.join(".env"), "SHELLOPTS=xtrace\nGOOD_VAR=ok\n");
+
+    let script = "echo \"M1 GOOD_VAR=$GOOD_VAR\"\nexit\n";
+    let out = run_in_shell(shell, &dir, script);
+
+    assert!(
+        out.contains("M1 GOOD_VAR=ok"),
+        "a legitimate sibling key must still load even though SHELLOPTS \
+         in the same file is denied; got:\n{out}"
+    );
+}
+for_each_shell!(
+    shellopts_denial_does_not_break_legitimate_loading,
+    scenario_shellopts_denial_does_not_break_legitimate_loading
 );
