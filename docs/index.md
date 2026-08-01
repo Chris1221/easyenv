@@ -22,9 +22,9 @@ Detects your platform, downloads and checksum-verifies the right release binary,
 
 ## It stays fast, even deep in a directory tree
 
-![Cold-load latency vs. directory nesting depth: easyenv stays under 6ms out to 128 levels, direnv grows to ~78ms, autoenv grows to over a second](assets/benchmark-nesting.png)
+![Cold-load latency vs. directory nesting depth: easyenv and shadowenv stay fast and flat out to 128 levels; direnv grows moderately; autoenv, mise, and zsh-autoenv all grow sharply, with mise passing 2 seconds at depth 128](assets/benchmark-nesting.png)
 
-That's cold-load latency — the time from `cd` to variables being set — as nesting gets deeper. easyenv stays at a few milliseconds out to 128 nested `.env` files. direnv grows noticeably. autoenv, which has no caching and shells out to external commands per ancestor directory, passes **a full second** at 128 levels. Full methodology and how to reproduce it: [Benchmarks](reference/benchmarks.md).
+That's cold-load latency — the time from `cd` to variables being set — as nesting gets deeper, benchmarked against direnv, autoenv, [shadowenv](https://github.com/Shopify/shadowenv), [mise](https://mise.jdx.dev/), and [zsh-autoenv](https://github.com/Tarrasch/zsh-autoenv). easyenv and shadowenv (also Rust, also diff/reversal-based) stay at a few milliseconds out to 128 nested directories. direnv grows moderately. autoenv, mise, and zsh-autoenv all grow sharply with depth — mise passes **2 seconds** at 128 levels. Full methodology, caveats, and how to reproduce it: [Benchmarks](reference/benchmarks.md).
 
 ## How it compares
 

@@ -64,11 +64,11 @@ The short version: direnv is powerful and general (it can run arbitrary shell, n
 
 ## Performance
 
-Cold-load latency (time from `cd` to variables being set) as directory nesting gets deeper:
+Cold-load latency (time from `cd` to variables being set) as directory nesting gets deeper, against direnv, autoenv, [shadowenv](https://github.com/Shopify/shadowenv) (Shopify), [mise](https://mise.jdx.dev/) (jdx), and [zsh-autoenv](https://github.com/Tarrasch/zsh-autoenv):
 
-![Cold-load latency vs. directory nesting depth: easyenv stays under 6ms out to 128 levels, direnv grows to ~78ms, autoenv grows to over a second](docs/assets/benchmark-nesting.png)
+![Cold-load latency vs. directory nesting depth: easyenv and shadowenv stay fast and flat out to 128 levels; direnv grows moderately; autoenv, mise, and zsh-autoenv all grow sharply, with mise passing 2 seconds at depth 128](docs/assets/benchmark-nesting.png)
 
-easyenv stays flat at a few milliseconds out to 128 levels of nested `.env` files; direnv grows more noticeably; autoenv — which shells out to external commands per ancestor directory and has no caching — passes **a full second** at 128 levels. Methodology, caveats, and how to reproduce it: [Benchmarks](http://chrisbcole.me/easyenv/reference/benchmarks/).
+easyenv and shadowenv (also Rust, also diff/reversal-based) stay flat at a few milliseconds out to 128 levels of nesting. direnv grows moderately. autoenv, mise, and zsh-autoenv all grow sharply with depth — mise takes **over 2 seconds** at 128 levels, autoenv **~1.4–2 seconds**, zsh-autoenv **~0.8 seconds**. Methodology, caveats (including two tools that need extra per-directory setup just to make nesting work at all), and how to reproduce it: [Benchmarks](http://chrisbcole.me/easyenv/reference/benchmarks/).
 
 ## How it works
 

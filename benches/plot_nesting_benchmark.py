@@ -22,13 +22,18 @@ OUT_PATH = (
 )
 
 # Fixed categorical order and validated palette slots (see the dataviz
-# skill's palette.md): slot 1 blue, slot 2 green, slot 3 magenta. Magenta
-# sits below 3:1 contrast on the light surface, so it always gets a direct
+# skill's palette.md): slot 1 blue, 2 green, 3 magenta, 4 yellow, 5 aqua,
+# 6 orange -- re-validated as a set of 6 (`validate_palette.js`) before
+# adding shadowenv/mise/zsh-autoenv. Magenta/yellow/aqua sit below 3:1
+# contrast on the light surface, so every series gets a direct
 # end-of-line label rather than relying on color/legend alone.
 SERIES = [
     ("easyenv", "#2a78d6"),
     ("direnv", "#008300"),
     ("autoenv", "#e87ba4"),
+    ("shadowenv", "#eda100"),
+    ("mise", "#1baf7a"),
+    ("zsh-autoenv", "#eb6834"),
 ]
 
 SURFACE = "#fcfcfb"

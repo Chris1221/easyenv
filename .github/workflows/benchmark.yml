@@ -28,14 +28,30 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release
 
-      - name: Install direnv
-        run: sudo apt-get update && sudo apt-get install -y direnv
+      - name: Install direnv and zsh
+        run: sudo apt-get update && sudo apt-get install -y direnv zsh
 
       - name: Clone autoenv
         run: git clone --depth 1 https://github.com/hyperupcall/autoenv.git /tmp/autoenv
 
+      - name: Clone zsh-autoenv
+        run: git clone --depth 1 https://github.com/Tarrasch/zsh-autoenv.git /tmp/zsh-autoenv
+
+      - name: Install shadowenv
+        run: |
+          curl -fsSL -o /tmp/shadowenv \
+            https://github.com/Shopify/shadowenv/releases/latest/download/shadowenv-x86_64-unknown-linux-gnu
+          chmod +x /tmp/shadowenv
+          echo "/tmp" >> "$GITHUB_PATH"
+
+      - name: Install mise
+        run: curl -fsSL https://mise.run | sh
+        env:
+          MISE_INSTALL_PATH: /tmp/mise-bin/mise
+      - run: echo "/tmp/mise-bin" >> "$GITHUB_PATH"
+
       - name: Run nesting benchmark
-        run: AUTOENV_DIR=/tmp/autoenv ./benches/nesting_benchmark.sh
+        run: AUTOENV_DIR=/tmp/autoenv ZSH_AUTOENV_DIR=/tmp/zsh-autoenv ./benches/nesting_benchmark.sh
 
       - uses: actions/setup-python@v5
         with:
