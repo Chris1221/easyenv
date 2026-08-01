@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0](https://github.com/Chris1221/easyenv/compare/v0.2.0...v0.3.0) (2026-08-01)
+
+
+### Features
+
+* **bench:** add shadowenv, mise, and zsh-autoenv to the comparison ([3cd341f](https://github.com/Chris1221/easyenv/commit/3cd341f36b8949e12ba5bb222072d9843b922f5e))
+* **release:** allow manually re-uploading assets to an existing tag ([df77243](https://github.com/Chris1221/easyenv/commit/df77243640ca6446100d4a79af6d8f292394ee13))
+* **security:** add config-driven denylist/skip-list engine (P0-1) ([96f6286](https://github.com/Chris1221/easyenv/commit/96f6286194fc9294be14c59d7e5b9a979039fbb9))
+
+
+### Bug Fixes
+
+* make the readme a bit simpler ([a9dab85](https://github.com/Chris1221/easyenv/commit/a9dab85a452cd3067e8c7d2b6047ccf483ad9d96))
+* **release:** drop component name from release tags ([5e4f8f0](https://github.com/Chris1221/easyenv/commit/5e4f8f0339d9266714ea34fb28dff7d3a8fd3cc5))
+* **release:** pass upload-rust-binary-action a fully-formed tag ref ([2b054fb](https://github.com/Chris1221/easyenv/commit/2b054fb7d823a41c03ebecd6b209f84b7fc6d96d))
+* **security:** call easyenv by absolute path from the hook (P0-2) ([90d0224](https://github.com/Chris1221/easyenv/commit/90d0224cca656f1540e28caef0a2d601a886bbf4))
+* **security:** make the /tmp-skip test portable to macOS CI ([f516c0c](https://github.com/Chris1221/easyenv/commit/f516c0c96450ab7eafcc023705231fb66baff163))
+
 ## [0.2.0](https://github.com/Chris1221/easyenv/compare/easyenv-v0.1.0...easyenv-v0.2.0) (2026-07-31)
 
 
