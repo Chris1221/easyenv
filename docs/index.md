@@ -28,17 +28,19 @@ That's cold-load latency — the time from `cd` to variables being set — as ne
 
 ## How it compares
 
-| | **easyenv** | [direnv](https://direnv.net/) | [autoenv](https://github.com/hyperupcall/autoenv) | sourcing `.env` by hand |
-|---|---|---|---|---|
-| Loads `.env` automatically, no boilerplate | ✅ | ❌ — needs an `.envrc` per directory that explicitly calls `dotenv` | ✅ | ❌ |
-| Unloads automatically on `cd` out | ✅ | ✅ | ❌ — variables leak into the next directory unless you configure a `.env.leave`/hook yourself | ❌ |
-| No per-directory trust/allow step | ✅ | ❌ — requires `direnv allow` the first time (and again on every edit) | ✅ | n/a |
-| What a hostile `.env` in a cloned repo can do | set inert variables only — [~150 dangerous names denied by default](reference/security.md) | nothing, without an explicit `direnv allow` | arbitrary shell — `.env` is sourced directly, no restriction | whatever the file contains — no different from running any other script |
-| Parent directories merge automatically, child overrides parent | ✅ | only via an explicit `source_up` call in every child `.envrc` | ❌ | ❌ |
-| Zero configuration files | ✅ | ❌ (`.envrc` per directory) | ✅ | n/a |
-| Runtime | single Rust binary | Go binary | Bash script | — |
+Against direnv, autoenv, and the three other tools this project benchmarks itself against ([shadowenv](https://github.com/Shopify/shadowenv) from Shopify, [mise](https://mise.jdx.dev/) from jdx, and [zsh-autoenv](https://github.com/Tarrasch/zsh-autoenv)):
 
-The short version: direnv is powerful and general (it can run arbitrary shell, not just `.env` files) but that generality is exactly why it needs an explicit `.envrc` and a trust step per directory — friction easyenv is designed to have none of. autoenv gets the "load on `cd` in" half right but doesn't unload without extra setup, so variables from one project bleed into the next. easyenv only does the one job — load/unload `.env` on `cd`, with nested overrides — and does it with no config and no prompts. "No trust step" is a fair usability win only because it's backed by an actual enforcement mechanism, not just an absence of prompts — see [Security](reference/security.md) for what that mechanism is and its honest limits.
+| | **easyenv** | [direnv](https://direnv.net/) | [autoenv](https://github.com/hyperupcall/autoenv) | [shadowenv](https://github.com/Shopify/shadowenv) | [mise](https://mise.jdx.dev/) | [zsh-autoenv](https://github.com/Tarrasch/zsh-autoenv) | sourcing `.env` by hand |
+|---|---|---|---|---|---|---|---|
+| Loads `.env` automatically, no boilerplate | ✅ | ❌ — needs an `.envrc` that explicitly calls `dotenv` | ✅ | ❌ — config is Shadowlisp (`.shadowenv.d/*.lisp`), not `.env` | ❌ — needs `mise.toml` (can `_.source` a `.env`, but still needs the config file) | ❌ — config is `.autoenv.zsh`, an actual zsh script | ❌ |
+| Unloads automatically on `cd` out | ✅ | ✅ | ❌ — needs `.env.leave` + opt-in | ✅ | ✅ | ✅ | ❌ |
+| No per-directory trust/allow step | ✅ | ❌ — requires `direnv allow` the first time (and again on every edit) | ❌ — prompts interactively the first time a `.env` is new or changed (bypassable via `AUTOENV_ASSUME_YES`) | ❌ — requires `shadowenv trust` | ❌ — requires `mise trust` (auto-trusted in detected CI by default) | ❌ — same whitelist-prompt model as autoenv | n/a |
+| What a hostile `.env` in a cloned repo can do | set inert variables only — [~150 dangerous names denied by default](reference/security.md) | nothing, without an explicit `direnv allow` | nothing until authorized — but once authorized, arbitrary shell, no further restriction | nothing, without an explicit `shadowenv trust` | nothing, without an explicit `mise trust` | nothing until authorized — same all-or-nothing model as autoenv | whatever the file contains — no different from running any other script |
+| Parent directories merge automatically, child overrides parent | ✅ | only via an explicit `source_up` call in every child `.envrc` | ✅ | ❌ — needs an explicit `.shadowenv.d/parent` symlink in every directory | ✅ | ❌ — needs an explicit `autoenv_source_parent` call in every file | ❌ |
+| Zero configuration files | ✅ | ❌ (`.envrc` per directory) | ✅ | ❌ (`.shadowenv.d/`) | ❌ (`mise.toml`) | ❌ (`.autoenv.zsh`) | n/a |
+| Runtime | single Rust binary | Go binary | Bash script | Rust binary | Rust binary (also a version manager + task runner) | Zsh script | — |
+
+The short version: direnv is powerful and general (it can run arbitrary shell, not just `.env` files) but that generality is exactly why it needs an explicit `.envrc` and a trust step per directory — friction easyenv is designed to have none of. autoenv gets the "load on `cd` in" half right, including automatic parent/child merging, but doesn't unload without extra setup, so variables from one project bleed into the next. shadowenv (also Rust, also a diff/reversal design) and mise both require an explicit trust step too, closer in spirit to direnv here than to easyenv; neither shadowenv nor zsh-autoenv merge parent directories automatically the way easyenv/mise/autoenv do — each needs an explicit per-directory opt-in to inherit anything from above. zsh-autoenv fixes plain autoenv's biggest complaint (no unload) but keeps the same authorization-prompt model. easyenv only does the one job — load/unload `.env` on `cd`, with nested overrides — and does it with no config and no prompts. "No trust step" is a fair usability win only because it's backed by an actual enforcement mechanism, not just an absence of prompts — see [Security](reference/security.md) for what that mechanism is and its honest limits, and [Benchmarks](reference/benchmarks.md) for how these tools compare at deep nesting.
 
 ## How it merges nested directories
 
