@@ -21,16 +21,30 @@ No `.envrc`, no per-directory trust prompts, no leftover variables from the last
 
 ## Quickstart
 
-```console
-$ curl -fsSL https://raw.githubusercontent.com/Chris1221/easyenv/main/install.sh | bash
-# detects your platform, downloads + checksum-verifies the release binary,
-# installs to ~/.local/bin (no sudo), and asks before touching your rc file
+We provide a convenience script to automate installation - the script just picks up your platform, finds the latest release, downloads it, puts it in a folder of your choosing (`~/.local/bin` by default) and then appends a line to your shell configuration (either bash or zsh) after asking for confirmation. If you don't trust the script, please do read it, it's fairly straightforward.
 
-$ cd ~/some/project
-$ echo 'API_KEY=demo-123' > .env
-$ cd .. && cd -   # or just cd out and back in for real
-$ echo $API_KEY
-demo-123
+```console
+curl -fsSL https://raw.githubusercontent.com/Chris1221/easyenv/main/install.sh | bash
+```
+
+Restart your shell, and you should be able to read environmental variables without any configuration
+
+
+```console
+# For example, make a simple environmental configuration
+$ mkdir .test
+$ echo "TEST=test" > .test/.env
+
+# Outside the directory, this will be empty.
+$ echo $TEST
+
+
+# But inside the directory, the environmental variables will be populated
+$ cd .test; echo $TEST
+test
+
+# Don't forget to clean up...
+$ rm -r .test 
 ```
 
 `install.sh` is a plain, [readable shell script](install.sh) — review it before piping it to `bash` if you'd like. Prebuilt archives for Linux (x86_64/aarch64, gnu/musl), macOS (Intel/Apple Silicon), and Windows are also on the [releases page](https://github.com/Chris1221/easyenv/releases) if you'd rather install manually, and `cargo install --path .` works from a clone. See the [installation guide](http://chrisbcole.me/easyenv/getting-started/installation/) and [quickstart tutorial](http://chrisbcole.me/easyenv/getting-started/quickstart/) for the full walkthrough.
