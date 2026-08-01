@@ -18,12 +18,23 @@ pub fn format_ops(ops: &[Op], new_state_token: &str) -> String {
 /// since zsh's `precmd_functions` already fires unconditionally on every
 /// prompt this same way. `$?` is saved/restored so a nonzero exit from
 /// `easyenv` never leaks into the user's actual last-command exit status.
-pub const HOOK_SCRIPT: &str = r#"_easyenv_hook() {
+///
+/// `__EASYENV_BIN__` is substituted with the shell-quoted absolute path to
+/// this binary (see `ShellKind::resolve_easyenv_invocation`) so that a
+/// `.env` setting `PATH` cannot hijack the very next hook invocation --
+/// this is a plain string substitution rather than a `format!` template
+/// because the script is full of shell `${...}` syntax that would need
+/// brace-escaping under `format!`.
+const HOOK_SCRIPT_TEMPLATE: &str = r#"_easyenv_hook() {
   local previous_exit_status=$?
-  eval "$(easyenv export bash)"
+  eval "$(__EASYENV_BIN__ export bash)"
   return $previous_exit_status
 }
 if [[ ";${PROMPT_COMMAND:-};" != *";_easyenv_hook;"* ]]; then
   PROMPT_COMMAND="_easyenv_hook${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 fi
 "#;
+
+pub fn hook_script(easyenv_invocation: &str) -> String {
+    HOOK_SCRIPT_TEMPLATE.replace("__EASYENV_BIN__", easyenv_invocation)
+}

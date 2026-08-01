@@ -267,3 +267,119 @@ for_each_shell!(
     exit_status_of_failing_command_is_preserved,
     scenario_exit_status_of_failing_command_is_preserved
 );
+
+#[cfg(unix)]
+fn write_fake_easyenv_shim(dir: &Path) {
+    let shim = dir.join("easyenv");
+    std::fs::write(&shim, "#!/bin/sh\necho FAKE_EASYENV_SHIM_RAN\n").unwrap();
+    let mut perms = std::fs::metadata(&shim).unwrap().permissions();
+    std::os::unix::fs::PermissionsExt::set_mode(&mut perms, 0o755);
+    std::fs::set_permissions(&shim, perms).unwrap();
+}
+
+/// Like `run_in_shell`, except the rc file's hook-fetch line uses the
+/// absolute path to the real binary directly (simulating a properly
+/// installed hook, e.g. via `install.sh` or `easyenv init`'s corrected
+/// output), and `$PATH` is set to *only* `shim_dir` -- the real binary's
+/// directory is deliberately absent from `PATH` entirely, so any
+/// PATH-resolved lookup of `easyenv` can only ever find the fake shim.
+#[cfg(unix)]
+fn run_in_shell_with_hijacked_path(
+    shell: &str,
+    start_dir: &Path,
+    script: &str,
+    shim_dir: &Path,
+) -> String {
+    let real_bin = easyenv_bin_dir().join("easyenv");
+    let rc_dir = TempDir::new().unwrap();
+
+    let mut cmd = match shell {
+        "bash" => {
+            let rc_path = rc_dir.path().join("bashrc");
+            write_env(
+                &rc_path,
+                &format!(
+                    "export PATH=\"{}\"\neval \"$('{}' hook bash)\"\n",
+                    shim_dir.display(),
+                    real_bin.display()
+                ),
+            );
+            let mut cmd = Command::new("bash");
+            cmd.arg("--noprofile")
+                .arg("--rcfile")
+                .arg(&rc_path)
+                .arg("-i");
+            cmd
+        }
+        "zsh" => {
+            write_env(
+                &rc_dir.path().join(".zshrc"),
+                &format!(
+                    "export PATH=\"{}\"\neval \"$('{}' hook zsh)\"\n",
+                    shim_dir.display(),
+                    real_bin.display()
+                ),
+            );
+            let mut cmd = Command::new("zsh");
+            cmd.env("ZDOTDIR", rc_dir.path()).arg("-i");
+            cmd
+        }
+        other => panic!("unsupported shell in test harness: {other}"),
+    };
+
+    cmd.current_dir(start_dir)
+        .env_remove("EASYENV_STATE")
+        .env_remove("EASYENV_DEBUG")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+
+    let mut child = cmd
+        .spawn()
+        .unwrap_or_else(|e| panic!("failed to spawn {shell}: {e}"));
+    child
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(script.as_bytes())
+        .unwrap();
+    let output = child.wait_with_output().unwrap();
+    String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+/// Regression test for the hook self-hijack: since the fetched hook script
+/// bakes in an absolute path to the real binary (see
+/// `ShellKind::resolve_easyenv_invocation`), a directory whose `.env` sets
+/// `PATH` to somewhere else entirely must not cause the *next* prompt's
+/// `easyenv export` call to run whatever `easyenv` resolves to on the new
+/// PATH -- it must keep calling the real binary directly.
+#[cfg(unix)]
+fn scenario_hook_survives_path_hijack(shell: &str) {
+    let tmp = TempDir::new().unwrap();
+    let dir = tmp.path().join("proj");
+    std::fs::create_dir_all(&dir).unwrap();
+    write_env(&dir.join(".env"), "FOO=real_value\n");
+
+    let shim_dir = tmp.path().join("shim");
+    std::fs::create_dir_all(&shim_dir).unwrap();
+    write_fake_easyenv_shim(&shim_dir);
+
+    let script = "echo \"M1 FOO=$FOO\"\nexit\n";
+    let out = run_in_shell_with_hijacked_path(shell, &dir, script, &shim_dir);
+
+    assert!(
+        out.contains("M1 FOO=real_value"),
+        "the hook must call the real easyenv binary via its baked-in \
+         absolute path, not whatever `easyenv` resolves to on PATH; got:\n{out}"
+    );
+    assert!(
+        !out.contains("FAKE_EASYENV_SHIM_RAN"),
+        "a fake `easyenv` earlier on PATH must never run in place of the \
+         real binary; got:\n{out}"
+    );
+}
+#[cfg(unix)]
+for_each_shell!(
+    hook_survives_path_hijack,
+    scenario_hook_survives_path_hijack
+);

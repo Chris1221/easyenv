@@ -18,17 +18,19 @@ impl ShellKind {
         }
     }
 
-    pub fn hook_script(&self) -> &'static str {
+    pub fn hook_script(&self) -> String {
+        let bin = resolve_easyenv_invocation();
         match self {
-            ShellKind::Bash => bash::HOOK_SCRIPT,
-            ShellKind::Zsh => zsh::HOOK_SCRIPT,
+            ShellKind::Bash => bash::hook_script(&bin),
+            ShellKind::Zsh => zsh::hook_script(&bin),
         }
     }
 
-    pub fn init_snippet(&self) -> &'static str {
+    pub fn init_snippet(&self) -> String {
+        let bin = resolve_easyenv_invocation();
         match self {
-            ShellKind::Bash => "eval \"$(easyenv hook bash)\"",
-            ShellKind::Zsh => "eval \"$(easyenv hook zsh)\"",
+            ShellKind::Bash => format!("eval \"$({bin} hook bash)\""),
+            ShellKind::Zsh => format!("eval \"$({bin} hook zsh)\""),
         }
     }
 
@@ -36,6 +38,26 @@ impl ShellKind {
         match self {
             ShellKind::Bash => "~/.bashrc",
             ShellKind::Zsh => "~/.zshrc",
+        }
+    }
+}
+
+/// Resolves the absolute, shell-quoted path to the running `easyenv`
+/// binary, for interpolation into the hook script. Without this, the hook
+/// would call the bare word `easyenv`, PATH-resolved at hook-firing time --
+/// meaning a `.env` that sets `PATH` (e.g. `PATH=/tmp/evil`) would hijack
+/// every subsequent invocation of easyenv itself. Falls back to the bare
+/// name (with a stderr warning) if the running binary's own path can't be
+/// resolved, which should only happen in unusual sandboxes.
+fn resolve_easyenv_invocation() -> String {
+    match std::env::current_exe() {
+        Ok(path) => shell_single_quote(&path.to_string_lossy()),
+        Err(e) => {
+            eprintln!(
+                "easyenv: warning: could not resolve absolute path to self ({e}); \
+                 hook will call bare `easyenv`, resolved via PATH at call time"
+            );
+            "easyenv".to_string()
         }
     }
 }

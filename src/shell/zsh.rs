@@ -10,8 +10,12 @@ pub fn format_ops(ops: &[Op], new_state_token: &str) -> String {
 /// registration is what makes a shell that starts up already inside a
 /// `.env` directory load on its very first prompt, since `chpwd_functions`
 /// alone does not fire on shell init.
-pub const HOOK_SCRIPT: &str = r#"_easyenv_hook() {
-  eval "$(easyenv export zsh)"
+///
+/// `__EASYENV_BIN__` is substituted with the shell-quoted absolute path to
+/// this binary -- see `bash::hook_script` for why this is a plain string
+/// substitution rather than a `format!` template.
+const HOOK_SCRIPT_TEMPLATE: &str = r#"_easyenv_hook() {
+  eval "$(__EASYENV_BIN__ export zsh)"
 }
 typeset -ag chpwd_functions
 if [[ -z "${chpwd_functions[(r)_easyenv_hook]}" ]]; then
@@ -22,3 +26,7 @@ if [[ -z "${precmd_functions[(r)_easyenv_hook]}" ]]; then
   precmd_functions+=(_easyenv_hook)
 fi
 "#;
+
+pub fn hook_script(easyenv_invocation: &str) -> String {
+    HOOK_SCRIPT_TEMPLATE.replace("__EASYENV_BIN__", easyenv_invocation)
+}
