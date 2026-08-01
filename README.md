@@ -109,9 +109,4 @@ $ mkdocs serve
 
 ### Release process
 
-Pushing a tag matching `v[0-9]+.*` (e.g. `v0.1.0`) triggers `.github/workflows/release.yml`, which cross-compiles `easyenv` for Linux (x86_64/aarch64, gnu/musl), macOS (Intel/Apple Silicon), and Windows (x86_64), and publishes each as a checksummed archive on a new GitHub Release ([`taiki-e/create-gh-release-action`](https://github.com/taiki-e/create-gh-release-action) + [`taiki-e/upload-rust-binary-action`](https://github.com/taiki-e/upload-rust-binary-action)):
-
-```console
-$ git tag v0.1.0
-$ git push origin v0.1.0
-```
+Releases are fully automated by [release-please](https://github.com/googleapis/release-please) (`.github/workflows/release-please.yml`) — no manual tagging. It watches Conventional Commits on `main` and keeps an up-to-date "release PR" with the next version bump and changelog; merging that PR is what actually cuts the release: it tags, publishes the GitHub Release, and triggers cross-compiled builds for Linux (x86_64/aarch64, gnu/musl), macOS (Intel/Apple Silicon), and Windows (x86_64), uploaded as checksummed archives (`taiki-e/upload-rust-binary-action`). To re-upload binaries for an existing tag without cutting a new release, run the workflow manually (`workflow_dispatch`) with that tag.
